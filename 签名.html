@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>签名</title>
+  <style>
+    *{
+      margin: 0;
+      padding: 0;
+    }
+    html,body{
+      width: 100%;
+      height: 100%;
+    }
+    .title{
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .content{
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .canvas{
+      width: 100%;
+      /* height: 400px; */
+      background: #eee;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="content">
+    <div>
+      <div class="title">
+        <span>请签名：</span>
+        <button id="goback" class="goback">后退</button>
+        <button id="tonext" class="tonext">前进</button>
+        <button id="save" class="save">保存</button>
+        <button id="btn" class="btn">清除</button>
+      </div>
+      <canvas width=800 height=400 id="canvas" class="canvas"></canvas>
+    </div>
+  </div>
+</body>
+
+<script>
+  (function(){
+    const canvas = document.getElementById('canvas');
+    const btn = document.getElementById('btn');
+    const goback = document.getElementById('goback');
+    const tonext = document.getElementById('tonext');
+    const save = document.getElementById('save');
+    const ctx = canvas.getContext('2d');
+    const obj = canvas.getBoundingClientRect();
+    const width = canvas.width;
+    const height = canvas.height;
+    const canvasLeft = obj.left;
+    const canvasTop = obj.top;
+    let tempImgData = [];
+    let index = -1;
+    let scalNum = 2 || window.devicePixelRatio;
+  
+    // 禁止微信浏览器中页面下拉回弹
+    function hiddentPrevent(e) {
+      e.preventDefault();
+    }
+    document.body.addEventListener('touchmove', hiddentPrevent, {passive: false});
+  
+  
+    // 按下鼠标
+    function down(e){
+      let x = e.clientX - canvasLeft;
+      let y = e.clientY - canvasTop;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+  
+      // 移动鼠标
+      canvas.onmousemove = move.bind(this);
+  
+      // 松开鼠标
+      canvas.onmouseup = up.bind(this);
+    }
+  
+  
+    // 移动鼠标
+    function move(ev) {
+      let moveX = ev.clientX - canvasLeft;
+      let moveY = ev.clientY - canvasTop;
+      ctx.lineTo(moveX, moveY);
+      ctx.stroke();
+    }
+  
+    // 松开鼠标
+    function up() {
+      tempImgData = tempImgData.slice(0, index+1);
+      let imgData = ctx.getImageData(0, 0, width, height);
+      tempImgData.push(imgData);
+      index++;
+      this.onmousemove = null;
+      this.onmouseup = null;
+    }
+  
+  
+    canvas.onmousedown = down.bind(canvas);
+  
+    canvas.ontouchstart = touchstart.bind(canvas);
+    
+  
+    
+    // 触摸
+    function touchstart(e) {
+      let x = e.targetTouches[0].clientX - canvasLeft;
+      let y = e.targetTouches[0].clientY - canvasTop;
+      ctx.beginPath();
+      ctx.moveTo(x*scalNum, y*scalNum);
+      console.log(Math.floor(x), Math.floor(y));
+  
+      // 滑动
+      canvas.ontouchmove = touchmove.bind(this);
+  
+      // 松手
+      canvas.ontouchend = touchend.bind(this);
+  
+    }
+    
+    // 滑动
+    function touchmove(ev) {
+      let moveX = ev.targetTouches[0].clientX - canvasLeft;
+      let moveY = ev.targetTouches[0].clientY - canvasTop;
+      ctx.lineTo(moveX*scalNum, moveY*scalNum);
+      ctx.stroke();
+    }
+  
+    // 松手
+    function touchend(ev) {
+      tempImgData = tempImgData.slice(0, index+1);
+      let imgData = ctx.getImageData(0, 0, width, height);
+      tempImgData.push(imgData);
+      index++;
+      this.ontouchmove = null;
+      this.ontouchend = null;
+    }
+  
+  
+    // 清除画布
+    btn.onclick = function() {
+      ctx.clearRect(0, 0, width, height);
+      tempImgData = [];
+      index = -1;
+    }
+  
+    // 后退
+    goback.onclick = function() {
+      index--;
+      if(index <= -1) {
+        index = -1;
+        ctx.clearRect(0, 0, width, height);
+        return;
+      }
+      let imgData = tempImgData[index];
+      if(imgData) {
+        ctx.putImageData(imgData, 0, 0);
+      }
+    };
+  
+    // 前进
+    tonext.onclick = function() {
+      index++;
+      if(index >= tempImgData.length) {
+        index = tempImgData.length-1;
+        return;
+      }
+      let imgData = tempImgData[index];
+      if(imgData) {
+        ctx.putImageData(imgData, 0, 0);
+      }
+    };
+  })()
+
+
+</script>
+</html>
